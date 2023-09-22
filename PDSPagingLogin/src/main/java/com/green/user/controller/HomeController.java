@@ -25,7 +25,7 @@ public class HomeController {
 	}
 	
 	// 로구안 
-	@RequestMapping("/Login")
+	@RequestMapping("/login")
 	public String login() {
 		return "user/login";
 	}
@@ -44,10 +44,10 @@ public class HomeController {
 		//  로그인 체크
 		UserVo  vo  =  userService.getLogin(map);
 		if( vo != null ) {
-			session.setAttribute("loign", vo);
+			session.setAttribute("login", vo);
 			returnURL  =  "redirect:/"; // HOME 으로 보낸다
 		} else {
-			returnURL  =  "redirect:/Login"; // login.jsp 으로 보낸다
+			returnURL  =  "redirect:/login"; // login.jsp 으로 보낸다
 		}
 		
 		return returnURL;
@@ -58,7 +58,7 @@ public class HomeController {
 	public String logout(HttpSession session) {
 		
 		session.invalidate();
-		return "redirect:/Login";
+		return "redirect:/login";
 	}
 	
 }

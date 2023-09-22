@@ -24,7 +24,7 @@
   <table>
    <tr>
      <th>아이디</th>
-     <td><input type="text" name="userid" /></td>
+     <td><input type="text" name="userid" value="admin"/></td>
    </tr> 
    <tr>
      <th>비밀번호</th>
