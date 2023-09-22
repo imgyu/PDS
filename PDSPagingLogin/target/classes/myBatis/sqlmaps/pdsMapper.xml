@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Pds">  
+
+   <!-- 목록 조회 : DESC : 최신순   -->
+   <select id         = "PdsList"
+           resultType = "com.green.pds.vo.PdsVo"  >
+   
+      SELECT     IDX, 
+                 MENU_ID,                 
+                 -- DECODE(LVL, 0, '', '[Re] ') || TITLE  AS TITLE ,
+                 TITLE,
+                 WRITER,
+                 READCOUNT,
+                 ( 
+                    SELECT  COUNT( FILE_NUM ) 
+                     FROM   FILES  F
+                     WHERE  F.IDX  =  B.IDX  
+                 )  FILESCOUNT,
+                 TO_CHAR(REGDATE, 'YYYY-MM-DD HH24:MI:SS')  REGDATE,
+                 BNUM,
+                 LVL,
+                 STEP,
+                 NREF,
+                 DELNUM
+                 
+       FROM      BOARD  B
+       
+       <if test="menu_id != null and menu_id !=''">
+       WHERE     
+          MENU_ID  =  #{menu_id}
+       </if>   
+       ORDER BY NREF  DESC, STEP   ASC         
+   
+   </select>  
+   
+   <!-- ============================================ -->
+   <!-- 페이징 list  -->
+   <select  id="PdsPagingList"
+            resultType="com.green.pds.vo.PdsPagingVo">
+   
+   SELECT  * FROM
+    (   
+        SELECT   
+                 ROW_NUMBER() OVER(ORDER BY NREF DESC, STEP ASC)  RNUM,
+                 IDX, 
+                 MENU_ID,
+                 TITLE,
+                 WRITER,
+                 READCOUNT,
+                 ( 
+                    SELECT  COUNT( FILE_NUM ) 
+                     FROM   FILES  F
+                     WHERE  F.IDX  =  B.IDX  
+                 )  FILESCOUNT,
+                 TO_CHAR(REGDATE, 'YYYY-MM-DD HH24:MI:SS')  REGDATE,
+                 BNUM,
+                 LVL,
+                 STEP,
+                 NREF,
+                 DELNUM,
+                 PARENT
+                 
+       FROM      BOARD  B       
+       <if test="menu_id != null and menu_id !=''">  
+       WHERE     
+          MENU_ID  =  #{menu_id}
+       </if>         
+    )  T
+    WHERE  T.RNUM  
+           BETWEEN  #{startnum}  AND  #{endnum}  
+   
+   </select>
+   
+   <!-- 전체 자료수 조회 -->
+   <!--
+        resultType     = "_int"
+        resultType     = "Integer"
+        resultType     = "java.lang.Integer"         
+     -->
+   <select   id             = "GetTotalCount"
+             parameterType  = "hashmap"
+             resultType     = "_int">
+                          
+      SELECT
+         COUNT( IDX )  AS   TOTALCOUNT
+       FROM   
+         BOARD
+       <if test="menu_id != null and menu_id != ''"> 
+         WHERE   MENU_ID = #{ menu_id }
+       </if>
+       
+   </select>
+   
+   <!-- =============================  -->   
+   
+   <select  id         = "PdsGet"
+            resultType = "com.green.pds.vo.PdsVo">
+       SELECT  IDX,
+               MENU_ID,
+               TITLE,
+               CONT,
+               WRITER,
+               READCOUNT,
+               TO_CHAR(REGDATE, 'YYYY-MM-DD HH24:MI:SS') REGDATE,
+               BNUM,
+               LVL,
+               STEP,
+               NREF,
+               DELNUM,
+               PARENT
+        FROM   BOARD
+        WHERE  IDX = #{idx}
+   
+   </select>
+   
+   <select   id         = "FileList" 
+             resultType = "com.green.pds.vo.FilesVo">
+   
+       SELECT
+		   FILE_NUM, IDX, FILENAME, FILEEXT, SFILENAME
+		FROM       FILES
+		WHERE      IDX   =  #{ idx  } 
+		ORDER BY   FILE_NUM  ASC 
+   
+   </select>
+   
+   <!-- PdsInsert -->
+   <!-- 새글 저장 로직 -->
+   <insert    id="PdsInsert">
+      INSERT INTO  BOARD (
+            IDX
+		  ,	MENU_ID
+	      ,	TITLE
+	      , CONT
+		  ,	WRITER
+		  , REGDATE
+	      , READCOUNT
+		  ,	BNUM
+		  ,	LVL
+		  ,	STEP
+		  ,	NREF
+		  ,	DELNUM
+		  ,	PARENT
+      )
+      VALUES
+      (
+          (SELECT  NVL( MAX(IDX), 0 ) + 1 FROM BOARD)
+		  ,	#{ menu_id }
+	      ,	#{ title   }
+	      , #{ cont    }
+		  ,	#{ writer  }
+		  , SYSDATE
+	      , 0
+		  ,	(SELECT  NVL( MAX(IDX), 0 ) + 1 FROM BOARD)
+		  ,	0
+		  ,	0
+		  ,	(SELECT  NVL( MAX(IDX), 0 ) + 1 FROM BOARD)
+		  ,	0
+		  ,	0
+      )
+   
+   </insert>
+   
+   <!-- 답글을 추가하기위해 기존글의 step 을 증가시킨다 -->
+   <update   id="StepUpdate">
+      
+      UPDATE   BOARD
+       SET     STEP    =  STEP + 1
+       WHERE   MENU_ID =  #{ menu_id }
+        AND    NREF    =  #{ nref } 
+        AND    step    >  #{ step } 
+      
+   </update>
+   
+   <insert   id="PdsReply">
+      INSERT INTO  BOARD (
+            IDX
+		  ,	MENU_ID
+	      ,	TITLE
+	      , CONT
+		  ,	WRITER
+		  , REGDATE
+	      , READCOUNT
+		  ,	BNUM
+		  ,	LVL
+		  ,	STEP
+		  ,	NREF
+		  ,	DELNUM
+		  ,	PARENT
+      )
+      VALUES
+      (
+          (SELECT  NVL( MAX(IDX), 0 ) + 1 FROM BOARD)
+		  ,	#{ menu_id }
+	      ,	#{ title   }
+	      , #{ cont    }
+		  ,	#{ writer  }
+		  , SYSDATE
+	      , 0
+		  , #{ bnum }
+		  ,	#{ lvl  } + 1
+		  ,	#{ step } + 1
+		  ,	#{ nref }
+		  ,	0
+		  ,	#{ parent }
+      )
+   </insert>
+   
+   
+   
+   
+   <!-- FileInsert :넘어온 파일 여러개를 한번에 저장 insert all 
+     주의 사항: oracle GET_FILENUM() 함수를 만들고 실행할 것
+   -->
+   <insert  id="FileInsert">
+      <foreach collection="fileList" item="file"
+           index      = "i"  
+           open       = "INSERT ALL"    
+           close      = "SELECT * FROM DUAL"
+           separator  = " " >
+           INTO  FILES  VALUES (
+                GET_FILENUM()
+              , ( SELECT MAX(IDX) FROM BOARD  )
+              , #{ file.filename   }
+              , #{ file.fileext    }
+              , #{ file.sfilename  }
+           )
+      </foreach>
+   
+   </insert>
+   
+   <!-- 파일정보 수정 - 파일이 추가될때 idx 는 기존idx 로 저장해여함  -->
+    <insert  id="FileInsert2">
+      <foreach collection="fileList" item="file"
+           index      = "i"  
+           open       = "INSERT ALL"    
+           close      = "SELECT * FROM DUAL"
+           separator  = " " >
+           INTO  FILES  VALUES (
+                GET_FILENUM()
+              , #{ idx             }
+              , #{ file.filename   }
+              , #{ file.fileext    }
+              , #{ file.sfilename  }
+           )
+      </foreach>
+   
+   </insert>
+ 
+   <!-- ============== 삭제 ================ -->
+   <!-- 자식이 있는지 확인 -->
+   <select id="isChild"
+           resultType="int" >
+     
+     SELECT
+      CASE
+        WHEN
+          EXISTS (
+             SELECT PARENT
+              FROM  BOARD
+              WHERE PARENT = #{idx} 
+          )     
+        THEN    1
+        ELSE    0
+      END
+      FROM DUAL
+   
+   </select>
+   
+   <delete   id="FileDelete">
+   
+      DELETE   FROM  FILES
+       WHERE  IDX  =  #{ idx }   
+   </delete>
+   
+   <delete   id="BoardDelete">
+   
+      DELETE   FROM  BOARD
+       WHERE  IDX  =  #{ idx }
+       
+   </delete>
+   
+   <update  id="BoardDelete2">
+      
+      UPDATE   BOARD 
+        SET    DELNUM = 1
+        WHERE  IDX = #{ idx }
+   
+   </update>
+ 
+    <delete   id="DeleteUploadFile">
+      
+      DELETE   FROM  FILES
+       WHERE   FILE_NUM =  #{ file_num  }
+    
+    </delete>
+    
+    <update   id = "PdsUpdate">
+       
+       UPDATE    BOARD
+        SET      TITLE  = #{ title }
+               , CONT   = #{ cont  }
+        WHERE    IDX    = #{ idx   }    
+         
+       
+    </update>
+ 
+ 
+ 
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+   

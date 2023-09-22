@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="User">  
+
+   <!-- 목록 조회 : DESC : 최신순   -->
+   <select id         = "UserList"
+           resultType = "com.green.user.vo.UserVo"  >
+   
+      SELECT     USERID, 
+                 USERNAME,
+                 EMAIL,
+                 TO_CHAR(INDATE, 'YYYY-MM-DD')  INDATE
+       FROM      TUSER
+       ORDER BY  INDATE   DESC         
+   
+   </select>  
+   
+   <!-- 회원정보조회 -->   <select id="GetUser"
+           resultType = "com.green.user.vo.UserVo">
+      
+   	   SELECT  USERID
+   	         , PASSWD
+   	         , USERNAME
+   	         , EMAIL
+   	         , TO_CHAR(INDATE, 'YYYY-MM-DD HH24:MI:SS')  INDATE
+   	    FROM   TUSER
+   	    WHERE  USERID = #{ userid }  
+      
+   </select>
+ 
+   <insert id="UserInsert">
+   
+       INSERT INTO tuser (
+		    userid,
+		    passwd,
+		    username,
+		    email
+		) VALUES (
+		    #{ userid    },
+		    #{ passwd    },
+		    #{ username  },
+		    #{ email     }
+		)       
+   
+   </insert>
+  
+   <delete id="UserDelete">
+   
+      DELETE  FROM   TUSER
+        WHERE  USERID = #{ userid }  
+           
+   </delete>
+   
+   <update  id="UserUpdate">
+   
+   	  UPDATE   TUSER
+   	    SET    USERNAME = #{ username },
+   	           EMAIL    = #{ email }
+   	    WHERE  USERID   = #{ userid }
+         AND   PASSWD   = #{ passwd }
+         
+   </update>
+<!-- Login -->
+ <select id="GetLogin" resultType="com.green.user.vo.UserVo">
+ 
+ SELECT USERID, PASSWD, USERNAME, EMAIL, TO_CHAR(INDATE, 'YYYY-MM-DD HH24:MI:SS') INDATE
+ FROM   TUSER
+ WHERE  USERID  =  #{ userid } 
+ AND    PASSWD  =  #{ passwd } 
+  
+ 
+ </select>
+ 
+ 
+ 
+</mapper>
+
+
+
+
+
+   
